@@ -26,7 +26,7 @@ def navigation_menu():
     return selected_page
 
 # Anime DataFrame
-df = pd.read_csv('anime-dataset-2023.csv')
+df = pd.read_csv('filtered_anime.csv')
 df = df[["Name", "Rank"]]
 
 # Navigation
@@ -50,7 +50,7 @@ if selected_page == "Anime ChatBot":
 
     if "datasets" not in st.session_state:
         datasets = {}
-        datasets["Anime Data"] = pd.read_csv("anime-dataset-2023.csv")
+        datasets["Anime Data"] = pd.read_csv("filtered_anime.csv")
         st.session_state["datasets"] = datasets
 
     with st.sidebar:
