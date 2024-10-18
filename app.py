@@ -10,6 +10,7 @@ from langchain.vectorstores import FAISS  # Using FAISS for vector storage
 from langchain.embeddings.openai import OpenAIEmbeddings  # OpenAI embeddings
 from langchain.chains import RetrievalQA
 from langchain_community.llms import OpenAI  # Updated import
+from model import generate_response # import generative text function 
 
 # Page config
 st.set_page_config(
@@ -32,9 +33,9 @@ df = df[["Name", "Rank"]]
 # Navigation
 selected_page = navigation_menu()
 
-# Page 1: ChatBot functionality
-default_text = st.text_area("Input some text here", "default text")
-st.write(default_text)
+# # Page 1: ChatBot functionality
+# default_text = st.text_area("Input some text here", "default text")
+# st.write(default_text)
 
 if selected_page == "Anime ChatBot":
     # Main Title and Subtitles
@@ -55,6 +56,29 @@ if selected_page == "Anime ChatBot":
 
     with st.sidebar:
         dataset_container = st.empty()
+ 
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Accept user input
+    prompt = st.chat_input("Ask me for anime recommendations!")
+
+    if prompt:
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        # Get recommendation from the model
+        response = generate_response(prompt)
+
+        # Add bot's response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response})
+
+        # Display both the user input and bot response
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
 
 # Page 2: Visualization functionality
 
