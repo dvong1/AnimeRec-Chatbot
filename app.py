@@ -4,6 +4,7 @@ from pathlib import Path
 import streamlit as st
 import pandas as pd
 import openai
+import plotly.express as px
 from streamlit_chat import message
 from langchain_community.document_loaders import CSVLoader  # Updated import
 from langchain.vectorstores import FAISS  # Using FAISS for vector storage
@@ -27,7 +28,7 @@ def navigation_menu():
 
 # Anime DataFrame
 df = pd.read_csv('filtered_anime.csv')
-df = df[["Name", "Rank"]]
+df = df[["Name", "Rank","Score", "Genres","Type", "Episodes", "Source", "Popularity"]]
 
 # Navigation
 selected_page = navigation_menu()
@@ -60,6 +61,31 @@ if selected_page == "Anime ChatBot":
 
 elif selected_page == "Anime Data Visualization":
     st.title("Anime Data Visualization")
+
+    # Extract genres from the 'genre' column, split by commas, and clean up spaces with nan
+    all_genres = [] 
+    for genres in df['Genres'].dropna():
+        all_genres.extend([genre.strip() for genre in genres.split(',')])
+
+    # Create a DataFrame with genre counts
+    genre_df = pd.DataFrame(all_genres, columns=['Genres']).value_counts().reset_index()
+    genre_df.columns = ['Genres', 'Count']
+
+    # Create a pie chart
+    fig = px.pie(genre_df, values='Count', names='Genres', title='Anime Genres Distribution')
     
+    st.plotly_chart(fig)
+    
+
+    
+    scores = pd.to_numeric(df['Score'], errors='coerce').dropna()
+
+    # Create a histogram of scores
+    fig = px.histogram(scores, nbins=20, title='Distribution of Anime Scores', labels={'value': 'Score', 'count': 'Number of Animes'})
+
+    # Display the histogram
+    st.plotly_chart(fig)
+
+ 
 # Sidebar options for both pages
 st.sidebar.title("Navigation")
