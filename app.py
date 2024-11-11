@@ -29,30 +29,35 @@ def navigation_menu():
 
 # Anime DataFrame
 df = pd.read_csv('filtered_anime.csv')
-df = df[["Name", "Rank","Score", "Genres","Type", "Episodes", "Source", "Popularity"]]
+df = df[["Name", "Rank", "Score", "Genres", "Type", "Episodes", "Source", "Popularity"]]
 
 # Navigation
 selected_page = navigation_menu()
 
-# # Page 1: ChatBot functionality
-# default_text = st.text_area("Input some text here", "default text")
-# st.write(default_text)
-
+# Page 1: ChatBot functionality
 if selected_page == "Anime ChatBot":
     # Main Title and Subtitles
-    st.markdown("<h1 style='text-align: center; font-weight:bold; font-family:comic sans ms; padding-top: 0rem;'> Anime ChatBot </h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center;padding-top: 0rem;'>Discover Your Next Anime Adventure!</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-weight:bold; font-family:cursive; color:red;'>Anime ChatBot</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color:gray; font-style:italic;'>Discover Your Next Anime Adventure!</h2>", unsafe_allow_html=True)
 
-    # Display the dataset
-    st.dataframe(df, height=500, hide_index=True)
+    # Display the Anime Dataset with enhanced styling
+    st.markdown("### Anime Dataset Overview")
+    st.markdown("Explore popular anime titles along with their genres, ratings, and more. Use this table to find your favorite genres or highly-rated shows.")
+    st.dataframe(df.style.set_properties(**{
+        'background-color': '#f9f9f9',
+        'border-color': '#4A90E2',
+        'font-size': '14px',
+        'font-family': 'Arial'
+    }), height=500, hide_index=True)
 
-    # Sidebar for Chatbot interaction
+    # Sidebar for Chatbot Interaction and Navigation
     st.sidebar.title("Explore Anime Trends")
-    st.sidebar.markdown("**Visualize anime data:**")
+    st.sidebar.markdown("**Visualize anime data or interact with our chatbot to get recommendations!**")
 
+    # Load dataset into session state if not already present
     if "datasets" not in st.session_state:
         datasets = {}
-        datasets["Anime Data"] = pd.read_csv("filtered_anime.csv")
+        datasets["Anime Data"] = df
         st.session_state["datasets"] = datasets
 
     with st.sidebar:
@@ -62,9 +67,10 @@ if selected_page == "Anime ChatBot":
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Accept user input
-    prompt = st.chat_input("Ask me for anime recommendations!")
+    # Accept user input for chatbot
+    prompt = st.chat_input("Ask me for anime recommendations or tell me what genres you like!")
 
+    # Process user input and chatbot response
     if prompt:
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -75,16 +81,18 @@ if selected_page == "Anime ChatBot":
         # Add bot's response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
-        # Display both the user input and bot response
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
+    # Display chat history
+    st.markdown("<div style='margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;'>", unsafe_allow_html=True)
+    for message in st.session_state.messages:
+        role_style = "color:#4A90E2;" if message["role"] == "assistant" else "color:#333;"
+        with st.chat_message(message["role"]):
+            st.markdown(f"<span style='{role_style}'>{message['content']}</span>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Page 2: Visualization functionality
 elif selected_page == "Anime Data Visualization":
     st.title("Anime Data Visualization")
-    st.subheader("Explore the Distribution of Anime Genres and Scores")
+    st.subheader("Explore the Distribution of Anime Genres, Scores, and Episodes")
 
     # Genre Distribution Pie Chart
     st.markdown("### Anime Genre Distribution")
@@ -129,7 +137,48 @@ elif selected_page == "Anime Data Visualization":
     )
     st.plotly_chart(fig_scores)
 
+    # Episode Range Bar Chart
+    st.markdown("### Distribution by Number of Episodes")
+    st.markdown("This bar chart shows anime titles filtered by the selected episode range, allowing for exploration of titles with varying episode lengths.")
+        
+    # Ensure 'Episodes' column is numeric, coerce errors to handle non-numeric values
+    df['Episodes'] = pd.to_numeric(df['Episodes'], errors='coerce')
+
+    # Drop rows where 'Episodes' is NaN (non-numeric values are converted to NaN in the above step)
+    df = df.dropna(subset=['Episodes'])
+
+    # Convert 'Episodes' to integer if needed
+    df['Episodes'] = df['Episodes'].astype(int)
+    
+    # Sidebar dropdown for episode range selection
+    episode_ranges = {
+        "1-12 episodes": (1, 12),
+        "13-24 episodes": (13, 24),
+        "25-50 episodes": (25, 50),
+        "51+ episodes": (51, float('inf'))
+    }
+    selected_range = st.sidebar.selectbox("Select Episode Range", list(episode_ranges.keys()))
+
+    # Filter dataset based on selected episode range
+    min_episodes, max_episodes = episode_ranges[selected_range]
+    df_filtered = df[(df['Episodes'] >= min_episodes) & (df['Episodes'] <= max_episodes)]
+
+    # Create a bar chart of anime titles by episode count within the selected range
+    fig_episodes = px.bar(
+        df_filtered,
+        x='Name',
+        y='Episodes',
+        title=f"Anime Titles with {selected_range}",
+        labels={'Name': 'Anime Title', 'Episodes': 'Number of Episodes'},
+        color_discrete_sequence=['#ff7f0e']  # Color for the bar chart
+    )
+    fig_episodes.update_layout(
+        xaxis={'categoryorder': 'total descending'},
+        xaxis_title="Anime Title",
+        yaxis_title="Number of Episodes"
+    )
+    st.plotly_chart(fig_episodes)
+
 # Sidebar options for navigation across pages
 st.sidebar.title("Navigation")
 st.sidebar.markdown("Use the options below to navigate through the dashboard.")
-
