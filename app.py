@@ -82,12 +82,16 @@ if selected_page == "Anime ChatBot":
 
 
 # Page 2: Visualization functionality
-
 elif selected_page == "Anime Data Visualization":
     st.title("Anime Data Visualization")
+    st.subheader("Explore the Distribution of Anime Genres and Scores")
 
-    # Extract genres from the 'genre' column, split by commas, and clean up spaces with nan
-    all_genres = [] 
+    # Genre Distribution Pie Chart
+    st.markdown("### Anime Genre Distribution")
+    st.markdown("This pie chart represents the distribution of anime genres within the dataset, giving insight into the popularity of each genre based on the number of titles.")
+    
+    # Extract genres from the 'Genres' column, split by commas, and clean up spaces
+    all_genres = []
     for genres in df['Genres'].dropna():
         all_genres.extend([genre.strip() for genre in genres.split(',')])
 
@@ -96,20 +100,36 @@ elif selected_page == "Anime Data Visualization":
     genre_df.columns = ['Genres', 'Count']
 
     # Create a pie chart
-    fig = px.pie(genre_df, values='Count', names='Genres', title='Anime Genres Distribution')
+    fig_genre = px.pie(
+        genre_df,
+        values='Count',
+        names='Genres',
+        title='Anime Genres Distribution',
+        color_discrete_sequence=px.colors.qualitative.Set3  # Professional color scheme
+    )
+    st.plotly_chart(fig_genre)
     
-    st.plotly_chart(fig)
-    
+    # Score Distribution Histogram
+    st.markdown("### Distribution of Anime Scores")
+    st.markdown("This histogram illustrates the distribution of anime scores across the dataset, with the x-axis representing the score range and the y-axis representing the number of anime titles. It provides an overview of the rating tendencies within the dataset.")
 
-    
+    # Handle scores and create histogram
     scores = pd.to_numeric(df['Score'], errors='coerce').dropna()
+    fig_scores = px.histogram(
+        scores,
+        nbins=20,
+        title='Distribution of Anime Scores',
+        labels={'value': 'Score', 'count': 'Number of Animes'},
+        color_discrete_sequence=['#1f77b4']  # Color for the histogram bars
+    )
+    fig_scores.update_layout(
+        xaxis_title="Score",
+        yaxis_title="Number of Animes",
+        bargap=0.1
+    )
+    st.plotly_chart(fig_scores)
 
-    # Create a histogram of scores
-    fig = px.histogram(scores, nbins=20, title='Distribution of Anime Scores', labels={'value': 'Score', 'count': 'Number of Animes'})
-
-    # Display the histogram
-    st.plotly_chart(fig)
-
- 
-# Sidebar options for both pages
+# Sidebar options for navigation across pages
 st.sidebar.title("Navigation")
+st.sidebar.markdown("Use the options below to navigate through the dashboard.")
+
