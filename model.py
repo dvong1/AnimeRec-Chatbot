@@ -43,11 +43,12 @@ def recommend_anime(user_input):
 
     # Sort by score for general recommendations and limit to top 5
     filtered_df = filtered_df.sort_values(by='Score', ascending=False).head(5)
-
-    # Return recommendations with more detailed descriptions
-    if not filtered_df.empty:
-        recommendations = []
-        for _, row in filtered_df.iterrows():
+    # Ensure unique recommendations
+    recommendations = []
+    seen_anime = set()
+    for _, row in filtered_df.iterrows():
+        if row['Name'] not in seen_anime:
+            seen_anime.add(row['Name'])
             recommendations.append(
                 f"**{row['Name']}**\n"
                 f"**Type**: {row['Type']} | **Episodes**: {row['Episodes']} | **Source**: {row['Source']}\n"
@@ -55,6 +56,7 @@ def recommend_anime(user_input):
                 f"**Score**: {row['Score']}\n"
                 f"**Synopsis**: {row['Synopsis'][:250]}..."  # Limiting synopsis length for clarity
             )
+    if recommendations:
         return "Here are the top anime recommendations based on your preferences:\n\n" + "\n\n".join(recommendations)
     else:
         return "I'm sorry, I couldn't find any anime that matches your criteria."
