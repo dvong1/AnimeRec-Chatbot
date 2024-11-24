@@ -1,6 +1,6 @@
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+import random
 
 # Load the model and tokenizer
 model_name = "distilgpt2"
@@ -19,55 +19,46 @@ df['Synopsis'] = df['Synopsis'].str.strip()
 # Enhanced recommendation function
 def recommend_anime(user_input):
     user_input_lower = user_input.lower()
+    num_recommendations = 5
     
-    # Check if the user mentions specific criteria like genre, score, or popularity
-    genres = [genre for genre in df['Genres'].unique() if genre.lower() in user_input_lower]
-    score_criteria = None
-    popularity_criteria = None
-
-    # Parse numerical ranges for scores and popularity
-    if "score above" in user_input_lower or "rating above" in user_input_lower:
-        score_criteria = float(user_input.split("score above")[-1].strip())
-    elif "popular" in user_input_lower:
-        popularity_criteria = "popular"
-
-    # Filter based on the criteria
-    filtered_df = df
-    if genres:
-        genre_regex = "|".join(genres)
-        filtered_df = filtered_df[filtered_df['Genres'].str.contains(genre_regex, case=False)]
-    if score_criteria:
-        filtered_df = filtered_df[filtered_df['Score'] >= score_criteria]
-    if popularity_criteria == "popular":
-        filtered_df = filtered_df.sort_values(by='Popularity').head(5)  # Assuming lower Popularity ranks are better
-
-    # Sort by score for general recommendations and limit to top 5
-    filtered_df = filtered_df.sort_values(by='Score', ascending=False).head(5)
-    # Ensure unique recommendations
-    recommendations = []
-    seen_anime = set()
-    for _, row in filtered_df.iterrows():
-        if row['Name'] not in seen_anime:
-            seen_anime.add(row['Name'])
-            recommendations.append(
-                f"**{row['Name']}**\n"
-                f"**Type**: {row['Type']} | **Episodes**: {row['Episodes']} | **Source**: {row['Source']}\n"
-                f"**Genres**: {row['Genres']}\n"
-                f"**Score**: {row['Score']}\n"
-                f"**Synopsis**: {row['Synopsis'][:250]}..."  # Limiting synopsis length for clarity
-            )
-    if recommendations:
-        return "Here are the top anime recommendations based on your preferences:\n\n" + "\n\n".join(recommendations)
+    # Step 1: Extract Keywords (Basic NLP)
+    input_keywords = set(user_input_lower.split())
+    
+    # Step 2: Match Genre from Dataset
+    matched_genres = df['Genres'].str.lower().apply(
+        lambda x: int(any(word in x for word in input_keywords))
+    )
+    genre_filtered_df = df[matched_genres > 0]
+    
+    # Step 3: Sort by Score
+    genre_filtered_df = genre_filtered_df.sort_values(by=['Score'], ascending=False)
+    
+    # Step 4: Limit to Top 100
+    top_genre_anime = genre_filtered_df.head(100)
+    
+    # Step 5: Apply Controlled Randomization
+    if len(top_genre_anime) > num_recommendations:
+        recommended_anime = top_genre_anime.sample(n=num_recommendations, random_state=random.randint(0, 1000))
     else:
-        return "I'm sorry, I couldn't find any anime that matches your criteria."
+        recommended_anime = top_genre_anime
+    
+    # Step 6: Format Recommendations
+    recommendations = []
+    for _, row in recommended_anime.iterrows():
+        recommendations.append(
+            f"**{row['Name']}**\n"
+            f"**Type**: {row['Type']} | **Episodes**: {row['Episodes']} | **Source**: {row['Source']}\n"
+            f"**Genres**: {row['Genres']}\n"
+            f"**Score**: {row['Score']}\n"
+            f"**Synopsis**: {row['Synopsis'][:250]}..."
+        )
+    
+    return "Here are the top anime recommendations based on your preferences:\n\n" + "\n\n".join(recommendations)
 
 # Example function to generate a response with the model
 def generate_response(user_input):
     # Generate an AI response using the model for conversational polish
-    input_ids = tokenizer.encode(user_input, return_tensors='pt')
-    bot_output = model.generate(input_ids, max_length=150, num_return_sequences=1, temperature=0.7)
-    response_text = tokenizer.decode(bot_output[0], skip_special_tokens=True)
 
     # Combine recommendation logic with language model's output
     recommendation = recommend_anime(user_input)
-    return f"{response_text}\n\n{recommendation}"
+    return recommendation
