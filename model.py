@@ -16,33 +16,82 @@ df['English name'] = df['English name'].str.strip()
 df['Genres'] = df['Genres'].str.strip()
 df['Synopsis'] = df['Synopsis'].str.strip()
 
-# Enhanced recommendation function
+# Define possible genres as a dictionary
+GENRES = {
+    "sports": "Sports",
+    "comedy": "Comedy",
+    "action": "Action",
+    "fantasy": "Fantasy",
+    "drama": "Drama",
+    "adventure": "Adventure",
+    "romance": "Romance",
+    "sci-fi": "Sci-Fi",
+    "supernatural": "Supernatural",
+    "mystery": "Mystery",
+    "horror": "Horror",
+    "slice of life": "Slice of Life",
+    "award winning": "Award Winning",
+    "suspense": "Suspense"
+}
+
+def parse_user_input(user_input):
+    """
+    Parse user input to identify genres and other criteria.
+    Returns a dictionary with identified genres and other filters.
+    """
+    user_input_lower = user_input.lower().split()
+    genres = set()
+    filters = {}
+
+    # Check for genres
+    for word in user_input_lower:
+        if word in GENRES:
+            genres.add(GENRES[word])
+    
+    # Add more parsing logic for other filters if needed (e.g., Type, Episodes)
+    # Example: Check for "movie" or "TV"
+    if "movie" in user_input_lower:
+        filters["Type"] = "Movie"
+    elif "tv" in user_input_lower:
+        filters["Type"] = "TV"
+    
+    # Return identified genres and filters
+    return {
+        "genres": genres,
+        "filters": filters
+    }
+
 def recommend_anime(user_input):
-    user_input_lower = user_input.lower()
+    parsed_input = parse_user_input(user_input)
+    genres = parsed_input["genres"]
+    filters = parsed_input["filters"]
     num_recommendations = 5
-    
-    # Step 1: Extract Keywords (Basic NLP)
-    input_keywords = set(user_input_lower.split())
-    
-    # Step 2: Match Genre from Dataset
-    matched_genres = df['Genres'].str.lower().apply(
-        lambda x: int(any(word in x for word in input_keywords))
-    )
-    genre_filtered_df = df[matched_genres > 0]
-    
-    # Step 3: Sort by Score
-    genre_filtered_df = genre_filtered_df.sort_values(by=['Score'], ascending=False)
-    
-    # Step 4: Limit to Top 100
-    top_genre_anime = genre_filtered_df.head(100)
-    
-    # Step 5: Apply Controlled Randomization
-    if len(top_genre_anime) > num_recommendations:
-        recommended_anime = top_genre_anime.sample(n=num_recommendations, random_state=random.randint(0, 1000))
+
+    # Filter by genres
+    if genres:
+        genre_filter = df['Genres'].str.contains('|'.join(genres), case=False, na=False)
+        filtered_df = df[genre_filter]
     else:
-        recommended_anime = top_genre_anime
+        # If no genre is specified, use the entire dataset
+        filtered_df = df
+
+    # Apply additional filters (e.g., Type)
+    for key, value in filters.items():
+        filtered_df = filtered_df[filtered_df[key] == value]
+
+    # Sort by score
+    filtered_df = filtered_df.sort_values(by=['Score'], ascending=False)
     
-    # Step 6: Format Recommendations
+    # Limit to top 50
+    top_anime = filtered_df.head(50)
+
+    # Apply controlled randomization
+    if len(top_anime) > num_recommendations:
+        recommended_anime = top_anime.sample(n=num_recommendations, random_state=random.randint(0, 1000))
+    else:
+        recommended_anime = top_anime
+    
+    # Format recommendations
     recommendations = []
     for _, row in recommended_anime.iterrows():
         recommendations.append(
@@ -54,6 +103,7 @@ def recommend_anime(user_input):
         )
     
     return "Here are the top anime recommendations based on your preferences:\n\n" + "\n\n".join(recommendations)
+
 
 # Example function to generate a response with the model
 def generate_response(user_input):
