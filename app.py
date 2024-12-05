@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 import streamlit as st
 import pandas as pd
-import openai
 import plotly.express as px
 from streamlit_chat import message
 from langchain_community.document_loaders import CSVLoader  # Updated import
